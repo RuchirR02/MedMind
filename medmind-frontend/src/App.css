@@ -1,0 +1,70 @@
+/* Reset */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* App container */
+body {
+  font-family: 'Inter', sans-serif;
+  background: #f7f9fc;
+  color: #333;
+  line-height: 1.5;
+}
+
+h1, h2 {
+  color: #2c3e50;
+}
+
+button {
+  padding: 8px 16px;
+  border: none;
+  background: #4cafef;
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s ease-in-out;
+}
+
+button:hover {
+  background: #3a9ed9;
+}
+
+section {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+/* Form inputs */
+input, select {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+input:focus, select:focus {
+  border-color: #4cafef;
+  outline: none;
+}
+
+/* Grid layout for forms */
+.grid {
+  display: grid;
+  gap: 16px;
+}
+
+/* Schedule list */
+.schedule-item {
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.schedule-item:last-child {
+  border-bottom: none;
+}
