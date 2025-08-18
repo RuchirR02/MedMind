@@ -9,11 +9,14 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
-import java.io.IOException;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.Map;
+import java.util.regex.*;
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/upload")
 @CrossOrigin(origins = "http://localhost:5173")
 public class UploadController {
 
@@ -23,55 +26,70 @@ public class UploadController {
     @Autowired
     private MedicineRepository medicineRepository;
 
-    // ✅ Upload prescription
-    @PostMapping("/upload")
+    private static final DateTimeFormatter FORMAT_24H = DateTimeFormatter.ofPattern("HH:mm");
+    private static final DateTimeFormatter FORMAT_12H = DateTimeFormatter.ofPattern("hh:mm a");
+
+    @PostMapping
     public ResponseEntity<?> uploadPrescription(@RequestParam("prescription") MultipartFile file) {
         if (file.isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("error", "No file selected"));
         }
 
         try {
-            String filename = System.currentTimeMillis() + "-" + file.getOriginalFilename().replaceAll("\\s+", "_");
-            File tempDir = new File(System.getProperty("java.io.tmpdir"), "uploads");
-            if (!tempDir.exists()) tempDir.mkdirs();
-            File savedFile = new File(tempDir, filename);
+            File savedFile = File.createTempFile("prescription-", ".jpg");
             file.transferTo(savedFile);
 
-            // Call Gemini
             String extractedText = geminiService.extractTextFromImage(savedFile);
             savedFile.delete();
 
-            // Simple parsing
-            String medName = extractedText.contains("Medicine") ? extractedText.split("Medicine")[1].split("Time")[0].trim() : "Unknown";
-            String medTime = extractedText.contains("Time") ? extractedText.split("Time")[1].trim() : "Unknown";
+            String medName = "Unknown";
+            String medTime = "08:00"; // fallback default
 
-            Medicine medicine = new Medicine(medName, medTime);
+            // Extract medicine + time from Gemini response
+            Pattern pattern = Pattern.compile("(?i)Medicine[:\\s]+([A-Za-z0-9\\- ]+)[,\\n\\r ]*Time[:\\s]+([0-9:AMPamp ]+)");
+            Matcher matcher = pattern.matcher(extractedText);
+
+            if (matcher.find()) {
+                medName = matcher.group(1).trim();
+                medTime = normalizeTo24h(matcher.group(2).trim()); // ✅ normalize right here
+            }
+
+            // Medicine medicine = new Medicine();
+            // medicine.setName(medName);
+            // medicine.setTime(medTime); // ✅ always stored as 24h
+
+            // Medicine saved = medicineRepository.save(medicine);
+            Medicine medicine = new Medicine(medName, medTime); // ✅ will normalize inside constructor
             Medicine saved = medicineRepository.save(medicine);
+
 
             return ResponseEntity.ok(Map.of(
                     "extractedText", extractedText,
                     "savedMedicine", saved
             ));
 
-        } catch (IOException e) {
-            e.printStackTrace();
-            return ResponseEntity.status(500).body(Map.of("error", "File processing failed", "details", e.getMessage()));
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.status(500).body(Map.of("error", "Internal server error", "details", e.getMessage()));
+            return ResponseEntity.status(500).body(Map.of(
+                    "error", "Internal server error",
+                    "details", e.getMessage()
+            ));
         }
     }
 
-    // ✅ Manual entry
-    @PostMapping("/medicines")
-    public ResponseEntity<?> addMedicine(@RequestBody Medicine medicine) {
-        Medicine saved = medicineRepository.save(medicine);
-        return ResponseEntity.ok(saved);
-    }
+    // ✅ Convert any "10:16 PM" → "22:16"
+    private String normalizeTo24h(String input) {
+        try {
+            String cleaned = input.toUpperCase().trim();
 
-    // ✅ Fetch all
-    @GetMapping("/medicines")
-    public ResponseEntity<?> getAllMedicines() {
-        return ResponseEntity.ok(medicineRepository.findAll());
+            if (cleaned.contains("AM") || cleaned.contains("PM")) {
+                return LocalTime.parse(cleaned, FORMAT_12H).format(FORMAT_24H);
+            } else {
+                return LocalTime.parse(cleaned, FORMAT_24H).format(FORMAT_24H);
+            }
+        } catch (DateTimeParseException e) {
+            System.err.println("⚠️ Could not parse time: " + input);
+            return "08:00"; // fallback default
+        }
     }
 }

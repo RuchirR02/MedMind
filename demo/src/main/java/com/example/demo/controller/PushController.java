@@ -25,11 +25,19 @@ public class PushController {
     @Value("${vapid.private.key}")
     private String privateKey;
 
-    // TEMP in-memory list for subscriptions
     private final List<String> subscriptions = new ArrayList<>();
+
+    public List<String> getSubscriptions() {
+        return subscriptions;
+    }
 
     static {
         Security.addProvider(new BouncyCastleProvider());
+    }
+
+    // ✅ Base64URL-safe decode
+    public static byte[] base64UrlDecode(String key) {
+        return Base64.getUrlDecoder().decode(key);
     }
 
     @GetMapping("/vapidPublicKey")
@@ -39,34 +47,41 @@ public class PushController {
 
     @PostMapping("/subscribe")
     public ResponseEntity<?> subscribe(@RequestBody String subscriptionJson) {
-        subscriptions.add(subscriptionJson); // Save for testing
+        subscriptions.add(subscriptionJson);
         System.out.println("Saved subscription: " + subscriptionJson);
         return ResponseEntity.ok("Subscription saved");
     }
 
-    // ✅ Test endpoint to send a push notification to all stored subscriptions
     @PostMapping("/sendTestNotification")
     public ResponseEntity<?> sendTestNotification() {
         try {
             PushService pushService = new PushService();
-            pushService.setPublicKey(Utils.loadPublicKey(Base64.getDecoder().decode(publicKey)));
-            pushService.setPrivateKey(Utils.loadPrivateKey(Base64.getDecoder().decode(privateKey)));
+            pushService.setPublicKey(Utils.loadPublicKey(base64UrlDecode(publicKey)));
+            pushService.setPrivateKey(Utils.loadPrivateKey(base64UrlDecode(privateKey)));
 
             for (String subJson : subscriptions) {
                 JSONObject sub = new JSONObject(subJson);
+
+                String payload = new JSONObject()
+                        .put("title", "MedMind Reminder")
+                        .put("body", "💊 Time to take your medicine!")
+                        .toString();
+
                 Notification notification = new Notification(
                         sub.getString("endpoint"),
                         sub.getJSONObject("keys").getString("p256dh"),
                         sub.getJSONObject("keys").getString("auth"),
-                        "💊 MedMind: Time to take your medicine!"
+                        payload
                 );
+
                 pushService.send(notification);
             }
 
-            return ResponseEntity.ok("Test notifications sent to all subscribers");
+            return ResponseEntity.ok("Test notifications sent ✅");
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.status(500).body("Error sending test notification: " + e.getMessage());
+            return ResponseEntity.status(500)
+                    .body("Error sending test notification: " + e.getMessage());
         }
     }
 }

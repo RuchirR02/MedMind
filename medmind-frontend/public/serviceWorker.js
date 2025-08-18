@@ -3,8 +3,8 @@ self.addEventListener('push', function(event) {
   try {
     payload = event.data ? event.data.json() : {};
   } catch (e) {
-    console.warn('Push payload is not JSON:', e);
-    payload = { title: 'MedMind', body: 'You have a reminder' };
+    console.warn('Push payload is not JSON, using fallback:', e);
+    payload = { title: 'MedMind Reminder', body: event.data ? event.data.text() : 'You have a reminder' };
   }
 
   const title = payload.title || 'MedMind Reminder';
@@ -13,13 +13,12 @@ self.addEventListener('push', function(event) {
     icon: '/icons/medicine-icon.png',
     badge: '/icons/medicine-badge.png',
     data: payload.data || {},
-    vibrate: [200, 100, 200] // optional, for attention
+    vibrate: [200, 100, 200]
   };
 
-  event.waitUntil(
-    self.registration.showNotification(title, options)
-  );
+  event.waitUntil(self.registration.showNotification(title, options));
 });
+
 
 self.addEventListener('notificationclick', function(event) {
   event.notification.close();

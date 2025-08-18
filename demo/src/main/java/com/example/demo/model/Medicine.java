@@ -1,30 +1,76 @@
 package com.example.demo.model;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 
 @Entity
-@Table(name = "medicines")
 public class Medicine {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     private String name;
+
+    // Always store in 24-hour HH:mm
     private String time;
+
+    private static final DateTimeFormatter FORMAT_24H = DateTimeFormatter.ofPattern("HH:mm");
+    private static final DateTimeFormatter FORMAT_12H = DateTimeFormatter.ofPattern("hh:mm a");
 
     public Medicine() {}
 
+    // ✅ Add constructor that normalizes automatically
     public Medicine(String name, String time) {
         this.name = name;
-        this.time = time;
+        this.time = normalizeTime(time);
     }
 
-    public Long getId() { return id; }
+    public Long getId() {
+        return id;
+    }
 
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-    public String getTime() { return time; }
-    public void setTime(String time) { this.time = time; }
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getTime() {
+        return time;
+    }
+
+    // ✅ Always normalize before saving
+    public void setTime(String time) {
+        this.time = normalizeTime(time);
+    }
+
+    private String normalizeTime(String timeInput) {
+        if (timeInput == null || timeInput.trim().isEmpty()) return null;
+
+        String normalized = timeInput.trim().toUpperCase();
+
+        try {
+            // Case 1: "09:30 PM"
+            if (normalized.contains("AM") || normalized.contains("PM")) {
+                return LocalTime.parse(normalized, FORMAT_12H).format(FORMAT_24H);
+            }
+            // Case 2: already "21:30"
+            return LocalTime.parse(normalized, FORMAT_24H).format(FORMAT_24H);
+        } catch (DateTimeParseException e) {
+            System.err.println("⚠️ Could not parse time: " + timeInput);
+            return "08:00"; // fallback default
+        }
+    }
 }

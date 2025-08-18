@@ -3,6 +3,9 @@ import api from "../services/api";
 
 export default function PrescriptionUpload({ onAdded }) {
   const [file, setFile] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [notifLoading, setNotifLoading] = useState(false);
 
   async function handleUpload(e) {
     e.preventDefault();
@@ -10,32 +13,63 @@ export default function PrescriptionUpload({ onAdded }) {
       alert("Please select a file");
       return;
     }
+
     const formData = new FormData();
     formData.append("prescription", file);
 
     try {
+      setLoading(true);
       const res = await api.post("/api/upload", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      console.log("✅ Upload response:", res.data);
+      console.log("Upload response:", res.data);
+      setResult(res.data);
+
       setFile(null);
       if (onAdded) onAdded();
-      alert("Medicine added from prescription!");
     } catch (err) {
-      console.error("API Error:", err);
-      alert(err.response?.data?.error || "Failed to upload prescription");
+      console.error(err);
+      alert("Failed to upload prescription");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleSendNotification() {
+    try {
+      setNotifLoading(true);
+      const res = await api.sendTestNotification();
+      alert("✅ Notification triggered: " + res.data);
+    } catch (err) {
+      console.error(err);
+      alert("❌ Failed to send notification");
+    } finally {
+      setNotifLoading(false);
     }
   }
 
   return (
-    <form onSubmit={handleUpload}>
-      <input
-        type="file"
-        accept="image/*"
-        onChange={(e) => setFile(e.target.files[0])}
-      />
-      <button type="submit">Upload</button>
-    </form>
+    <div>
+      <form onSubmit={handleUpload}>
+        <input
+          type="file"
+          accept="image/*"
+          onChange={(e) => setFile(e.target.files[0])}
+        />
+        <button type="submit" disabled={loading}>
+          {loading ? "Uploading..." : "Upload"}
+        </button>
+      </form>
+
+      {/* New button for test notification */}
+      <button
+        onClick={handleSendNotification}
+        disabled={notifLoading}
+        style={{ marginTop: "1rem" }}
+      >
+        {notifLoading ? "Sending..." : "Send Test Notification"}
+      </button>
+    </div>
   );
 }
