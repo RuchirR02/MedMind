@@ -59,18 +59,18 @@ public class Medicine {
     private String normalizeTime(String timeInput) {
         if (timeInput == null || timeInput.trim().isEmpty()) return null;
 
-        String normalized = timeInput.trim().toUpperCase();
+        // Replace multiple spaces, non-breaking spaces, tabs with a single normal space
+        String normalized = timeInput.replaceAll("\\s+", " ").replace('\u00A0', ' ').trim().toUpperCase();
 
         try {
-            // Case 1: "09:30 PM"
             if (normalized.contains("AM") || normalized.contains("PM")) {
                 return LocalTime.parse(normalized, FORMAT_12H).format(FORMAT_24H);
             }
-            // Case 2: already "21:30"
             return LocalTime.parse(normalized, FORMAT_24H).format(FORMAT_24H);
         } catch (DateTimeParseException e) {
-            System.err.println("⚠️ Could not parse time: " + timeInput);
-            return "08:00"; // fallback default
+            System.err.println("⚠️ Could not parse time: '" + timeInput + "' (" + e.getMessage() + ")");
+            return "Unknown"; // fallback
         }
     }
+
 }

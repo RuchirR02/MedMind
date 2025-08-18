@@ -30,7 +30,7 @@ public class PrescriptionParser {
         if (timeMatcher.find()) {
             result.put("time", timeMatcher.group(1).trim().toUpperCase());
         } else {
-            result.put("time", "08:00 AM"); // fallback default
+            result.put("time", "Unknown"); // fallback default
         }
 
         return result;

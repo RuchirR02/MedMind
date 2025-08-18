@@ -1,0 +1,5 @@
+# Ignore backend application properties
+demo/src/main/resources/application.properties
+
+# Ignore frontend env file
+medmind-frontend/.env
