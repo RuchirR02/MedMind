@@ -14,6 +14,8 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Map;
 import java.util.regex.*;
+import java.util.List;
+import java.util.ArrayList;
 
 @RestController
 @RequestMapping("/api/upload")
@@ -42,31 +44,29 @@ public class UploadController {
             String extractedText = geminiService.extractTextFromImage(savedFile);
             savedFile.delete();
 
-            String medName = "Unknown";
-            String medTime = "08:00"; // fallback default
+            
 
-            // Extract medicine + time from Gemini response
             Pattern pattern = Pattern.compile("(?i)Medicine[:\\s]+([A-Za-z0-9\\- ]+)[,\\n\\r ]*Time[:\\s]+([0-9:AMPamp ]+)");
             Matcher matcher = pattern.matcher(extractedText);
 
-            if (matcher.find()) {
-                medName = matcher.group(1).trim();
-                medTime = normalizeTo24h(matcher.group(2).trim()); // ✅ normalize right here
+            List<Medicine> savedList = new ArrayList<>();
+
+            while (matcher.find()) {
+                String medName = matcher.group(1).trim();
+                String medTime = normalizeTo24h(matcher.group(2).trim());
+
+                Medicine medicine = new Medicine();
+                medicine.setName(medName);
+                medicine.setTime(medTime);
+
+                savedList.add(medicineRepository.save(medicine));
             }
-
-            // Medicine medicine = new Medicine();
-            // medicine.setName(medName);
-            // medicine.setTime(medTime); // ✅ always stored as 24h
-
-            // Medicine saved = medicineRepository.save(medicine);
-            Medicine medicine = new Medicine(medName, medTime); // ✅ will normalize inside constructor
-            Medicine saved = medicineRepository.save(medicine);
-
 
             return ResponseEntity.ok(Map.of(
                     "extractedText", extractedText,
-                    "savedMedicine", saved
+                    "savedMedicines", savedList
             ));
+
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -77,19 +77,18 @@ public class UploadController {
         }
     }
 
-    // ✅ Convert any "10:16 PM" → "22:16"
+    // (optional) keep if you use it elsewhere
     private String normalizeTo24h(String input) {
         try {
-            String cleaned = input.toUpperCase().trim();
-
+            String cleaned = input.toUpperCase().trim().replace('\u00A0', ' ').replaceAll("\\s+", " ");
             if (cleaned.contains("AM") || cleaned.contains("PM")) {
                 return LocalTime.parse(cleaned, FORMAT_12H).format(FORMAT_24H);
             } else {
-                return LocalTime.parse(cleaned, FORMAT_24H).format(FORMAT_24H);
+                return LocalTime.parse(cleaned, DateTimeFormatter.ofPattern("H:mm")).format(FORMAT_24H);
             }
         } catch (DateTimeParseException e) {
             System.err.println("⚠️ Could not parse time: " + input);
-            return "08:00"; // fallback default
+            return "Unknown";
         }
     }
 }

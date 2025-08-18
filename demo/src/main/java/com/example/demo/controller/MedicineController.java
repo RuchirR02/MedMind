@@ -22,36 +22,7 @@ public class MedicineController {
 
     @PostMapping
     public Medicine addMedicine(@RequestBody Medicine medicine) {
-        String rawTime = medicine.getTime();
-        String normalized = normalizeTime(rawTime);
-        medicine.setTime(normalized);
-
-        Medicine saved = medicineRepository.save(medicine);
-        System.out.println("📥 Incoming: " + rawTime + " | 💾 Stored: " + saved.getTime());
-        return saved;
+        // IMPORTANT: use save24 so "09:30 PM" becomes "21:30"
+        return medicineRepository.save24(medicine);
     }
-
-    private String normalizeTime(String timeInput) {
-        if (timeInput == null || timeInput.trim().isEmpty()) return null;
-
-        try {
-            // Case: "10:23 PM"
-            if (timeInput.toUpperCase().contains("AM") || timeInput.toUpperCase().contains("PM")) {
-                return java.time.LocalTime.parse(
-                        timeInput.toUpperCase(),
-                        java.time.format.DateTimeFormatter.ofPattern("hh:mm a")
-                ).format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"));
-            }
-
-            // Case: "9:09", "09:09", "21:47"
-            return java.time.LocalTime.parse(
-                    timeInput,
-                    java.time.format.DateTimeFormatter.ofPattern("H:mm")
-            ).format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"));
-        } catch (Exception e) {
-            System.err.println("⚠️ Could not parse time: " + timeInput);
-            return timeInput; // fallback
-        }
-    }
-
 }
