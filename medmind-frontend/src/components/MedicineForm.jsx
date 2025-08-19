@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import api from "../services/api";
+import { getUserId } from "../utils/userId";
 
 export default function MedicineForm({ onAdded }) {
   const [name, setName] = useState("");
@@ -12,7 +13,7 @@ export default function MedicineForm({ onAdded }) {
       return;
     }
     try {
-      await api.post("/api/medicines", { name, time });
+      await api.post("/api/medicines", { name, time, userId: getUserId() });
       setName("");
       setTime("");
       if (onAdded) onAdded();

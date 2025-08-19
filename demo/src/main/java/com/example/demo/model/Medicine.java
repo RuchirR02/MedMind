@@ -20,15 +20,19 @@ public class Medicine {
     // Always store in 24-hour HH:mm
     private String time;
 
+    // ✅ New field
+    private String userId;
+
     private static final DateTimeFormatter FORMAT_24H = DateTimeFormatter.ofPattern("HH:mm");
     private static final DateTimeFormatter FORMAT_12H = DateTimeFormatter.ofPattern("hh:mm a");
 
     public Medicine() {}
 
     // ✅ Add constructor that normalizes automatically
-    public Medicine(String name, String time) {
+    public Medicine(String name, String time, String userId) {
         this.name = name;
         this.time = normalizeTime(time);
+        this.userId = userId;
     }
 
     public Long getId() {
@@ -56,6 +60,14 @@ public class Medicine {
         this.time = normalizeTime(time);
     }
 
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
+
     private String normalizeTime(String timeInput) {
         if (timeInput == null || timeInput.trim().isEmpty()) return null;
 
@@ -72,5 +84,4 @@ public class Medicine {
             return "Unknown"; // fallback
         }
     }
-
 }

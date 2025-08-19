@@ -4,6 +4,7 @@ import PrescriptionUpload from "./components/PrescriptionUpload";
 import ScheduleView from "./components/ScheduleView";
 import { subscribeForPush } from "./utils/pushUtils";
 import api from "./services/api";
+import { getUserId } from "./utils/userId"; // ✅ import userId util
 
 function ErrorBoundary({ children }) {
   const [error, setError] = useState(null);
@@ -22,6 +23,7 @@ function ErrorBoundary({ children }) {
 
 export default function App() {
   const [medicines, setMedicines] = useState([]);
+  const userId = getUserId(); // ✅ generate/reuse unique ID
 
   useEffect(() => {
     fetchMedicines();
@@ -29,7 +31,7 @@ export default function App() {
 
   async function fetchMedicines() {
     try {
-      const res = await api.get("/api/medicines");
+      const res = await api.get(`/api/medicines/${userId}`); // ✅ use correct id
       setMedicines(res.data || []);
     } catch (err) {
       console.error("Failed to fetch medicines", err);
@@ -91,7 +93,8 @@ export default function App() {
 
           <div>
             <h2>Upload Prescription</h2>
-            <PrescriptionUpload onAdded={onAdded} />
+            {/* ✅ pass the same userId */}
+            <PrescriptionUpload onAdded={onAdded} userId={userId} />
           </div>
         </section>
 

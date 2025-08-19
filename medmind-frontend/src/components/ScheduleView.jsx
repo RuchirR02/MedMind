@@ -1,6 +1,29 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import api from "../services/api";
+import { getUserId } from "../utils/userId";
 
-export default function ScheduleView({ medicines }) {
+export default function ScheduleView() {
+  const [medicines, setMedicines] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchMedicines() {
+      try {
+        const res = await api.get(`/api/medicines/${getUserId()}`);
+        setMedicines(res.data);
+      } catch (err) {
+        console.error("Failed to fetch medicines:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchMedicines();
+  }, []);
+
+  if (loading) {
+    return <p>Loading your schedule...</p>;
+  }
+
   if (!medicines.length) {
     return <p>No medicines scheduled.</p>;
   }
@@ -14,8 +37,8 @@ export default function ScheduleView({ medicines }) {
         </tr>
       </thead>
       <tbody>
-        {medicines.map((med, idx) => (
-          <tr key={idx}>
+        {medicines.map((med) => (
+          <tr key={med.id}>
             <td>{med.name}</td>
             <td>{med.time}</td>
           </tr>

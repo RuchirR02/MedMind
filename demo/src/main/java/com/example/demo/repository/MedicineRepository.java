@@ -5,8 +5,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 public interface MedicineRepository extends JpaRepository<Medicine, Long> {
+
+    // ✅ Fetch medicines only for specific user
+    List<Medicine> findByUserId(String userId);
 
     /**
      * Save while forcing time into 24h (HH:mm).
@@ -17,12 +21,11 @@ public interface MedicineRepository extends JpaRepository<Medicine, Long> {
             entity.setTime(normalizeTo24(entity.getTime()));
         }
         // Debug: print what’s being saved
-        System.out.println("[repo] saving => name=" + entity.getName() + ", time=" + entity.getTime());
+        System.out.println("[repo] saving => userId=" + entity.getUserId() + ", name=" + entity.getName() + ", time=" + entity.getTime());
         return save(entity);
     }
 
     // --- helpers ---
-
     private static String normalizeTo24(String input) {
         if (input == null) return null;
 
@@ -34,31 +37,27 @@ public interface MedicineRepository extends JpaRepository<Medicine, Long> {
 
         DateTimeFormatter HHmm = DateTimeFormatter.ofPattern("HH:mm");
         try {
-            // Case A: "h:mm AM/PM"  (accepts 1 or 2 digit hour)
+            // Case A: "h:mm AM/PM"
             if (cleaned.matches("^\\d{1,2}:\\d{2}\\s?(AM|PM)$")) {
                 LocalTime t = LocalTime.parse(cleaned, DateTimeFormatter.ofPattern("h:mm a"));
                 return t.format(HHmm);
             }
-
-            // Case B: "h AM/PM" (no minutes) → add :00
+            // Case B: "h AM/PM" (no minutes)
             if (cleaned.matches("^\\d{1,2}\\s?(AM|PM)$")) {
                 LocalTime t = LocalTime.parse(cleaned.replace(" ", ":00 "),
                         DateTimeFormatter.ofPattern("h:mm a"));
                 return t.format(HHmm);
             }
-
-            // Case C: already 24h like "21:30" or "9:05" (single-digit hour)
+            // Case C: already 24h
             if (cleaned.matches("^\\d{1,2}:\\d{2}$")) {
                 LocalTime t = LocalTime.parse(cleaned, DateTimeFormatter.ofPattern("H:mm"));
                 return t.format(HHmm);
             }
-
-            // If none matched, leave it as is (but you’ll see the log)
             System.err.println("[repo] normalizeTo24: unrecognized time '" + input + "'");
             return input;
         } catch (Exception e) {
             System.err.println("[repo] normalizeTo24 FAILED for '" + input + "': " + e.getMessage());
-            return input; // fallback: store as-is so you can see it and fix parser if needed
+            return input; 
         }
     }
 }

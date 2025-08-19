@@ -12,10 +12,8 @@ import java.io.File;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.*;
-import java.util.List;
-import java.util.ArrayList;
 
 @RestController
 @RequestMapping("/api/upload")
@@ -32,7 +30,10 @@ public class UploadController {
     private static final DateTimeFormatter FORMAT_12H = DateTimeFormatter.ofPattern("hh:mm a");
 
     @PostMapping
-    public ResponseEntity<?> uploadPrescription(@RequestParam("prescription") MultipartFile file) {
+    public ResponseEntity<?> uploadPrescription(
+            @RequestParam("prescription") MultipartFile file,
+            @RequestParam("userId") String userId) {
+
         if (file.isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("error", "No file selected"));
         }
@@ -43,8 +44,6 @@ public class UploadController {
 
             String extractedText = geminiService.extractTextFromImage(savedFile);
             savedFile.delete();
-
-            
 
             Pattern pattern = Pattern.compile("(?i)Medicine[:\\s]+([A-Za-z0-9\\- ]+)[,\\n\\r ]*Time[:\\s]+([0-9:AMPamp ]+)");
             Matcher matcher = pattern.matcher(extractedText);
@@ -58,6 +57,7 @@ public class UploadController {
                 Medicine medicine = new Medicine();
                 medicine.setName(medName);
                 medicine.setTime(medTime);
+                medicine.setUserId(userId);  // ✅ link to current user
 
                 savedList.add(medicineRepository.save(medicine));
             }
@@ -66,7 +66,6 @@ public class UploadController {
                     "extractedText", extractedText,
                     "savedMedicines", savedList
             ));
-
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -77,10 +76,11 @@ public class UploadController {
         }
     }
 
-    // (optional) keep if you use it elsewhere
     private String normalizeTo24h(String input) {
         try {
-            String cleaned = input.toUpperCase().trim().replace('\u00A0', ' ').replaceAll("\\s+", " ");
+            String cleaned = input.toUpperCase().trim()
+                    .replace('\u00A0', ' ')
+                    .replaceAll("\\s+", " ");
             if (cleaned.contains("AM") || cleaned.contains("PM")) {
                 return LocalTime.parse(cleaned, FORMAT_12H).format(FORMAT_24H);
             } else {

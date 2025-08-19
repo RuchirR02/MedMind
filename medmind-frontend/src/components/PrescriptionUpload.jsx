@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import api from "../services/api";
 
-export default function PrescriptionUpload({ onAdded }) {
+export default function PrescriptionUpload({ onAdded, userId }) {
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
@@ -16,6 +16,7 @@ export default function PrescriptionUpload({ onAdded }) {
 
     const formData = new FormData();
     formData.append("prescription", file);
+    formData.append("userId", userId); // ✅ Added userId
 
     try {
       setLoading(true);
@@ -27,6 +28,8 @@ export default function PrescriptionUpload({ onAdded }) {
       setResult(res.data);
 
       setFile(null);
+
+      // ✅ Refresh schedule immediately
       if (onAdded) onAdded();
     } catch (err) {
       console.error(err);
@@ -62,7 +65,6 @@ export default function PrescriptionUpload({ onAdded }) {
         </button>
       </form>
 
-      {/* New button for test notification */}
       <button
         onClick={handleSendNotification}
         disabled={notifLoading}
