@@ -26,4 +26,3 @@ const ToastAlert = ({ message, onClose, duration = 3000 }) => {
 };
 
 export default ToastAlert;
-
